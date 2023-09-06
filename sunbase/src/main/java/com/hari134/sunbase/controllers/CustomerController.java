@@ -33,6 +33,11 @@ import org.springframework.stereotype.Controller;
 @Controller
 public class CustomerController {
 
+    @GetMapping("/")
+    public String redirectToLogin() {
+        return "redirect:/login";
+    }
+
     @GetMapping("/customer-list")
     public String getCustomerList(Model model, HttpSession session) {
         // Retrieve the authentication token from the session
@@ -105,11 +110,16 @@ public class CustomerController {
                         String.class);
 
                 // Check the response status code
-                if (responseEntity.getStatusCode().is2xxSuccessful()) {
+                HttpStatusCode statusCode = responseEntity.getStatusCode();
+                if (statusCode == HttpStatus.CREATED) {
                     // Customer created successfully
                     return "redirect:/customer-list"; // Redirect to the customer list page
+                } else if (statusCode == HttpStatus.BAD_REQUEST) {
+                    // Handle the case where First Name or Last Name is missing
+                    model.addAttribute("error", "First Name or Last Name is missing.");
+                    return "error"; // You can create an error.jsp for error handling
                 } else {
-                    // Handle the case where customer creation fails
+                    // Handle other error cases
                     model.addAttribute("error", "Failed to create a new customer.");
                     return "error"; // You can create an error.jsp for error handling
                 }
@@ -151,15 +161,23 @@ public class CustomerController {
                 ResponseEntity<String> responseEntity = restTemplate.exchange(apiURL, HttpMethod.POST, requestEntity,
                         String.class);
 
-                // Check the response status code
-                if (responseEntity.getStatusCode().is2xxSuccessful()) {
+                // Check the response status code and handle accordingly
+                int statusCode = responseEntity.getStatusCodeValue();
+                if (statusCode == 200) {
                     // Customer deleted successfully
                     return "redirect:/customer-list"; // Redirect to the customer list page
+                } else if (statusCode == 400) {
+                    // UUID not found
+                    model.addAttribute("error", "UUID not found.");
+                } else if (statusCode == 500) {
+                    // Error during deletion
+                    model.addAttribute("error", "Error during deletion. Customer not deleted.");
                 } else {
-                    // Handle the case where customer deletion fails
-                    model.addAttribute("error", "Failed to delete the customer.");
-                    return "error"; // You can create an error.jsp for error handling
+                    // Handle other status codes as needed
+                    model.addAttribute("error", "An error occurred. Customer not deleted.");
                 }
+
+                return "error"; // You can create an error.jsp for error handling
             } catch (Exception e) {
                 e.printStackTrace();
                 // Handle exceptions
@@ -201,84 +219,82 @@ public class CustomerController {
     }
 
     @PostMapping("/update-customer")
-public String updateCustomer(
-        @RequestParam("uuid") String uuid,
-        @RequestParam("first_name") String firstName,
-        @RequestParam("last_name") String lastName,
-        @RequestParam("street") String street,
-        @RequestParam("address") String address,
-        @RequestParam("city") String city,
-        @RequestParam("state") String state,
-        @RequestParam("email") String email,
-        @RequestParam("phone") String phone,
-        Model model,
-        HttpSession session) {
-    // Retrieve the authentication token from the session
-    String token = (String) session.getAttribute("token");
-    
-    if (token != null) {
-        try {
-            // Build the API URL
-            String apiURL = "https://qa2.sunbasedata.com/sunbase/portal/api/assignment.jsp?cmd=update&uuid=" + uuid;
+    public String updateCustomer(
+            @RequestParam("uuid") String uuid,
+            @RequestParam("first_name") String firstName,
+            @RequestParam("last_name") String lastName,
+            @RequestParam("street") String street,
+            @RequestParam("address") String address,
+            @RequestParam("city") String city,
+            @RequestParam("state") String state,
+            @RequestParam("email") String email,
+            @RequestParam("phone") String phone,
+            Model model,
+            HttpSession session) {
+        // Retrieve the authentication token from the session
+        String token = (String) session.getAttribute("token");
 
-            // Create a RestTemplate instance
-            RestTemplate restTemplate = new RestTemplate();
+        if (token != null) {
+            try {
+                // Build the API URL
+                String apiURL = "https://qa2.sunbasedata.com/sunbase/portal/api/assignment.jsp?cmd=update&uuid=" + uuid;
 
-            // Set the request headers, including Authorization
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + token);
+                // Create a RestTemplate instance
+                RestTemplate restTemplate = new RestTemplate();
 
-            // Create a JSON object representing the customer data
-            JSONObject customerJson = new JSONObject();
-            customerJson.put("first_name", firstName);
-            customerJson.put("last_name", lastName);
-            customerJson.put("street", street);
-            customerJson.put("address", address);
-            customerJson.put("city", city);
-            customerJson.put("state", state);
-            customerJson.put("email", email);
-            customerJson.put("phone", phone);
+                // Set the request headers, including Authorization
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("Authorization", "Bearer " + token);
 
-            // Create the HTTP entity with the request body and headers
-            HttpEntity<String> requestEntity = new HttpEntity<>(customerJson.toString(), headers);
+                // Create a JSON object representing the customer data
+                JSONObject customerJson = new JSONObject();
+                customerJson.put("first_name", firstName);
+                customerJson.put("last_name", lastName);
+                customerJson.put("street", street);
+                customerJson.put("address", address);
+                customerJson.put("city", city);
+                customerJson.put("state", state);
+                customerJson.put("email", email);
+                customerJson.put("phone", phone);
 
-            // Send the POST request
-            ResponseEntity<String> responseEntity = restTemplate.exchange(
-                apiURL,
-                HttpMethod.POST,
-                requestEntity,
-                String.class
-            );
+                // Create the HTTP entity with the request body and headers
+                HttpEntity<String> requestEntity = new HttpEntity<>(customerJson.toString(), headers);
 
-            // Check the response status code
-            HttpStatusCode statusCode = responseEntity.getStatusCode();
-            if (statusCode == HttpStatus.OK) {
-                // Customer updated successfully
-                return "redirect:/customer-list"; // Redirect to the customer list page
-            } else if (statusCode == HttpStatus.NOT_FOUND) {
-                // UUID not found
-                model.addAttribute("error", "UUID not found.");
-            } else if (statusCode == HttpStatus.BAD_REQUEST) {
-                // Body is empty or other bad request
-                model.addAttribute("error", "Bad request.");
-            } else {
-                // Handle other status codes if needed
+                // Send the POST request
+                ResponseEntity<String> responseEntity = restTemplate.exchange(
+                        apiURL,
+                        HttpMethod.POST,
+                        requestEntity,
+                        String.class);
+
+                // Check the response status code
+                HttpStatusCode statusCode = responseEntity.getStatusCode();
+                if (statusCode == HttpStatus.OK) {
+                    // Customer updated successfully
+                    return "redirect:/customer-list"; // Redirect to the customer list page
+                } else if (statusCode == HttpStatus.NOT_FOUND) {
+                    // UUID not found
+                    model.addAttribute("error", "UUID not found.");
+                } else if (statusCode == HttpStatus.BAD_REQUEST) {
+                    // Body is empty
+                    model.addAttribute("error", "Body is empty.");
+                } else {
+                    // Handle other status codes if needed
+                    model.addAttribute("error", "Failed to update the customer.");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                // Handle exceptions
                 model.addAttribute("error", "Failed to update the customer.");
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            // Handle exceptions
-            model.addAttribute("error", "Failed to update the customer.");
+        } else {
+            // Token is not available, redirect to the login page
+            return "redirect:/login";
         }
-    } else {
-        // Token is not available, redirect to the login page
-        return "redirect:/login";
+
+        // Handle errors or redirection if necessary
+        return "error";
     }
-
-    // Handle errors or redirection if necessary
-    return "error";
-}
-
 
     private List<Customer> getCustomerListFromAPI(String token) {
         try {

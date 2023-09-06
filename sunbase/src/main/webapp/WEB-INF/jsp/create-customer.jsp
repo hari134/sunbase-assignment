@@ -73,22 +73,22 @@
         <input type="text" id="last_name" name="last_name" required>
 
         <label for="street">Street:</label>
-        <input type="text" id="street" name="street" required>
+        <input type="text" id="street" name="street">
 
         <label for="address">Address:</label>
-        <input type="text" id="address" name="address" required>
+        <input type="text" id="address" name="address">
 
         <label for="city">City:</label>
-        <input type="text" id="city" name="city" required>
+        <input type="text" id="city" name="city">
 
         <label for="state">State:</label>
-        <input type="text" id="state" name="state" required>
+        <input type="text" id="state" name="state">
 
         <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
+        <input type="email" id="email" name="email">
 
         <label for="phone">Phone:</label>
-        <input type="text" id="phone" name="phone" required>
+        <input type="text" id="phone" name="phone">
 
         <input type="submit" value="Create Customer">
     </form>
